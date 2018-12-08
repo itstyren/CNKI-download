@@ -1,3 +1,4 @@
+#各个条件在传输时候的固定标识符
 condition_value_list = {
     'a': 'SU$%=|',
     'b': 'KY',
@@ -7,7 +8,7 @@ condition_value_list = {
     'f': 'RF',
     'g': 'CLC$=|??'
 }
-
+#  各个条件的中文意思
 condition_list = {
     'a': '主题',
     'b': '关键词',
@@ -15,9 +16,9 @@ condition_list = {
     'd': '摘要',
     'e': '全文',
     'f': '被引文献',
-    'g': 'CLC$=|??'
+    'g': '中图分类号'
 }
-
+# 各个条件类型的固定标识符
 condition_type_list = {'a': 'and', 'b': 'or', 'c': 'not'}
 
 
@@ -25,7 +26,10 @@ def get_uesr_inpt():
     '''
     处理用户所需搜索的全部条件
     '''
-    search_condition()
+    condition_fields=search_condition()
+    print('正在检索中.....')
+    print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
+    return condition_fields
 
 
 def search_condition():
@@ -41,12 +45,13 @@ def search_condition():
     print("|（ｇ）中图分类号　　　　　　　　　　　　　　　　　|")
     print("|　　　　　　　　　　　　　　　　　　　　　　　　　|")
     print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
-    select_condition = input("请选择（以空格分割，如a c）：")
+    select_condition = input("请选择（以空格分割，如a c）：").strip()
     select_condition = select_condition.split(' ')
     print('\n')
     print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
     print('您选择的是：')
     input_check=' '
+    # 用户二次检查
     for term in select_condition:
         input_check += condition_list.get(term) + ' | '
     print(input_check)
@@ -57,19 +62,17 @@ def search_condition():
     }
     # 遍历用户选择，构造搜索条件部分字段
     for index, term in enumerate(select_condition):
-        condition_value=input('请输入【'+condition_list.get(term)+'】：')
-        # 第一个没有可选条件
+        condition_value=input('请输入【'+condition_list.get(term)+'】：').strip()
+        # 第一个不能选择条件类型，所以没有这个字段
         if index!=0:
             condition_type_value = input('请输入【' + condition_list.get(term) +
-                                         '】条件类型:（ａ）并且　（ｂ）或者　（ｃ）不含 ')
+                                         '】条件类型:（ａ）并且　（ｂ）或者　（ｃ）不含 ').strip()
+            condition_field_list['txt_' + str(index + 1) +
+                                 '_logical'] = condition_type_list.get(
+                                     condition_type_value)
         condition_field_list['txt_' + str(index + 1) +
                              '_sel'] = condition_value_list.get(term)
         condition_field_list['txt_' + str(index + 1) + '_value1']=condition_value
         condition_field_list['txt_'+str(index + 1)+'_relation'] = '#CNKI_AND'
         condition_field_list['txt_' + str(index + 1) + '_special1']='='
-        if index!=0:
-            condition_field_list['txt_' + str(index + 1) +
-                                 'logical'] = condition_type_list.get(
-                                     condition_type_value)
-
-    print(condition_field_list)
+    return condition_field_list
