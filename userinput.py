@@ -36,7 +36,6 @@ def search_condition():
     '''
     用户输入检索条件
     '''
-    print('\n')
     print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
     print("|　　　　　　　　　　　　　　　　　　　　　　　　　|")
     print('|　请选择检索条件：（可多选）　　　　　　　　　　　|')
@@ -47,7 +46,6 @@ def search_condition():
     print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
     select_condition = input("请选择（以空格分割，如a c）：").strip()
     select_condition = select_condition.split(' ')
-    print('\n')
     print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
     print('您选择的是：')
     input_check=' '

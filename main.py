@@ -1,13 +1,11 @@
 import requests
 import re
-import time
+import time,os
 from userinput import get_uesr_inpt
 # 引入字节编码
 from urllib.parse import quote
 # 引入beautifulsoup
 from bs4 import BeautifulSoup
-# 引入re
-import re
 
 HEADER = {'User-Agent': 'Mozilla/5.0'}
 # 获取cookie
@@ -16,6 +14,9 @@ BASIC_URL = 'http://kns.cnki.net/kns/brief/result.aspx'
 SEARCH_HANDLE_URL = 'http://kns.cnki.net/kns/request/SearchHandler.ashx'
 # 发送get请求获得文献资源
 GET_PAGE_URL='http://kns.cnki.net/kns/brief/brief.aspx?pagename='
+# 下载的基础链接
+DOWNLOAD_URL = 'http://kns.cnki.net/kns/'
+
 
 class SearchTools(object):
     '''
@@ -27,7 +28,7 @@ class SearchTools(object):
         # 保持会话
         self.session.get(BASIC_URL,headers=HEADER)
 
-    def search_literature(self,ueser_input):
+    def search_reference(self,ueser_input):
         '''
         第一次发送post请求
         再一次发送get请求,这次请求没有写文献等东西
@@ -67,22 +68,22 @@ def pre_parse_page(page_source):
     '''
     用户选择需要检索的页数
     '''
-    literature_num_pattern_compile=re.compile(r'.*?找到&nbsp;(.*?)&nbsp;')
-    literature_num=re.search(literature_num_pattern_compile,page_source).group(1)
-    literature_num_int=int(literature_num.replace(',',''))
-    print('检索到' + literature_num + '条结果，全部下载大约需要' +
-          s2h(literature_num_int)+'。')
+    reference_num_pattern_compile=re.compile(r'.*?找到&nbsp;(.*?)&nbsp;')
+    reference_num=re.search(reference_num_pattern_compile,page_source).group(1)
+    reference_num_int=int(reference_num.replace(',',''))
+    print('检索到' + reference_num + '条结果，全部下载大约需要' +
+          s2h(reference_num_int*5)+'。')
     is_all_download=input('是否要全部下载（y/n）?')
     # 将所有数量根据每页20计算多少页
     if is_all_download=='y':
-        page,i = divmod(literature_num_int,20)
+        page,i = divmod(reference_num_int,20)
         if i!=0:
             page+=1
         return page
     else:
         select_download_num=int(input('请输入需要下载的数量：'))
         while True:
-            if select_download_num > literature_num_int:
+            if select_download_num > reference_num_int:
                 print('输入数量大于检索结果，请重新输入！')
                 select_download_num=int(input('请输入需要下载的数量：'))
             else:
@@ -97,8 +98,50 @@ def parse_page(download_page_num,page_source):
     解析每一页的下载地址
     '''
     soup=BeautifulSoup(page_source,'lxml')
-    tr_info = soup.findAll(name='table', attrs={'class': 'GridTableContent'})
-    print(tr_info)
+    # 定位到内容表区域
+    tr_table = soup.find(name='table', attrs={'class': 'GridTableContent'})
+    # 去除第一个tr标签（表头）
+    tr_table.tr.extract()
+    # 遍历每一行
+    for index,tr_info in enumerate(tr_table.find_all(name='tr')):
+        # 遍历每一列
+        tr_text=''
+        download_url=''
+        for index,td_info in enumerate(tr_info.find_all(name='td')):
+            # 因为一列中的信息非常杂乱，此处进行二次拼接
+            td_text = ''
+            for string in td_info.stripped_strings:
+                td_text+=string
+            tr_text+=td_text+' '
+            with open('reference_list.txt','a',encoding='utf-8') as file:
+                file.write(td_text+' ')
+            # 寻找下载链接
+            url = td_info.find('a', attrs={'class': 'briefDl_D'})
+            if url:
+                download_url = url.attrs['href']
+        # 将每一篇文献的信息分组
+        single_refence_list = tr_text.split(' ')
+        download_refence(download_url,single_refence_list)
+        # 在每一行结束后输入一个空行
+        with open('reference_list.txt','a',encoding='utf-8') as file:
+            file.write('\n')
+
+
+def download_refence(url, single_refence_list):
+    print('正在下载: ' + single_refence_list[1] + '.caj')
+    name=single_refence_list[1]+'_'+single_refence_list[2]
+    # 检查文件命名，防止网站资源有特殊字符本地无法保存
+    file_pattern_compile = re.compile(r'[\\/:\*\?"<>\|]')
+    name = re.sub(file_pattern_compile, '', name)
+    # 拼接下载地址
+    download_url=DOWNLOAD_URL+re.sub(r'../','',url)
+    refence_file=requests.get(download_url,headers=HEADER)
+    if not os.path.isdir('CAJs'):
+        os.mkdir(r'CAJs')
+    with open('CAJs\\' + name + '.caj', 'wb') as file:
+        file.write(refence_file.content)
+    time.sleep(2)
+
 
 
 def s2h(seconds):
@@ -112,7 +155,7 @@ def s2h(seconds):
 
 def main():
     search=SearchTools()
-    search.search_literature(get_uesr_inpt())
+    search.search_reference(get_uesr_inpt())
 
 
 if __name__=='__main__':
