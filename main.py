@@ -1,8 +1,9 @@
 import requests
 import re
-import time, os, shutil
+import time, os, shutil,logging
 from UserInput import get_uesr_inpt
 from GetConfig import config
+from CrackVerifyCode import crack
 # 引入字节编码
 from urllib.parse import quote
 # 引入beautifulsoup
@@ -49,7 +50,7 @@ class SearchTools(object):
             'NaviCode': '*',
             'ua': '1.21',
             'isinEn': '1',
-            'PageName': 'ASP.brief_result_aspx',
+            'PageName': 'ASP.brief_default_result_aspx',
             'DbPrefix': 'SCDB',
             'DbCatalog': '中国学术期刊网络出版总库',
             'ConfigFile': 'CJFQ.xml',
@@ -109,17 +110,23 @@ class SearchTools(object):
                         page += 1
                     return page
 
-    def parse_page(self, download_page_num, page_source):
+    def parse_page(self, download_page_left, page_source):
         '''
         保存页面信息
         解析每一页的下载地址
         '''
-
         soup = BeautifulSoup(page_source, 'lxml')
         # 定位到内容表区域
         tr_table = soup.find(name='table', attrs={'class': 'GridTableContent'})
-        # 去除第一个tr标签（表头）
-        tr_table.tr.extract()
+        # 处理验证码
+        try:
+            # 去除第一个tr标签（表头）
+            tr_table.tr.extract()
+        except Exception as e:
+            logging.error('出现验证码')
+            return self.parse_page(download_page_left,
+                crack.get_image(self.next_page_url, self.session, page_source,
+                                HEADER))
         # 遍历每一行
         for index, tr_info in enumerate(tr_table.find_all(name='tr')):
             # 遍历每一列
@@ -131,7 +138,7 @@ class SearchTools(object):
                 for string in td_info.stripped_strings:
                     td_text += string
                 tr_text += td_text + ' '
-                with open('ReferenceList.txt', 'a', encoding='utf-8') as file:
+                with open('data/ReferenceList.txt', 'a', encoding='utf-8') as file:
                     file.write(td_text + ' ')
                 # 寻找下载链接
                 url = td_info.find('a', attrs={'class': 'briefDl_D'})
@@ -141,25 +148,26 @@ class SearchTools(object):
             single_refence_list = tr_text.split(' ')
             download_refence(download_url, single_refence_list)
             # 在每一行结束后输入一个空行
-            with open('ReferenceList.txt', 'a', encoding='utf-8') as file:
+            with open('data/ReferenceList.txt', 'a', encoding='utf-8') as file:
                 file.write('\n')
-        # download_page_num为剩余等待遍历页面
-        if download_page_num > 1:
+        # download_page_left为剩余等待遍历页面
+        if download_page_left > 1:
             self.cur_page_num += 1
-            self.get_another_page(download_page_num)
+            self.get_another_page(download_page_left)
 
-    def get_another_page(self, download_page_num):
+    def get_another_page(self, download_page_left):
         '''
         请求其他页面和请求第一个页面形式不同
         重新构造请求
         '''
+        # time.sleep(5)
         curpage_pattern_compile = re.compile(r'.*?curpage=(\d+).*?')
-        next_page_url = CHANGE_PAGE_URL + re.sub(
+        self.next_page_url = CHANGE_PAGE_URL + re.sub(
             curpage_pattern_compile, '?curpage=' + str(self.cur_page_num),
             self.change_page_url)
-        get_res = self.session.get(next_page_url, headers=HEADER)
-        download_page_num -= 1
-        self.parse_page(download_page_num, get_res.text)
+        get_res = self.session.get(self.next_page_url, headers=HEADER)
+        download_page_left -= 1
+        self.parse_page(download_page_left, get_res.text)
 
 
 def download_refence(url, single_refence_list):
@@ -200,8 +208,8 @@ def main():
     if os.path.isdir('data'):
         # 递归删除文件
         shutil.rmtree('data')
-        # 创建一个空的
-        os.mkdir('data')
+    # 创建一个空的
+    os.mkdir('data')
     search = SearchTools()
     search.search_reference(get_uesr_inpt())
 

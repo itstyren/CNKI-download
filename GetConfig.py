@@ -31,5 +31,9 @@ class GetConfig(object):
     def crawl_isdownload(self):
         return self.conf.get('crawl','isDownloadFile')
 
+    @LazyProperty
+    def crawl_iscrackcode(self):
+        return self.conf.get('crawl', 'isCrackCode')
+
 
 config=GetConfig()
