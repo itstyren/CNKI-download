@@ -1,3 +1,16 @@
+"""
+-------------------------------------------------
+   File Name：     UserInput.py
+   Description :   用户输入
+   Author :        Cyrus_Ren
+   date：          2018/12/8
+-------------------------------------------------
+   Change Activity:
+                   
+-------------------------------------------------
+"""
+__author__ = 'Cyrus_Ren'
+
 #各个条件在传输时候的固定标识符
 condition_value_list = {
     'a': 'SU$%=|',
@@ -26,7 +39,7 @@ def get_uesr_inpt():
     '''
     处理用户所需搜索的全部条件
     '''
-    condition_fields=search_condition()
+    condition_fields = search_condition()
     print('正在检索中.....')
     print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
     return condition_fields
@@ -48,21 +61,20 @@ def search_condition():
     select_condition = select_condition.split(' ')
     print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
     print('您选择的是：')
-    input_check=' '
+    input_check = ' '
     # 用户二次检查
     for term in select_condition:
         input_check += condition_list.get(term) + ' | '
     print(input_check)
     print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
     # 搜索字段待填充list
-    condition_field_list={
-
-    }
+    condition_field_list = {}
     # 遍历用户选择，构造搜索条件部分字段
     for index, term in enumerate(select_condition):
-        condition_value=input('请输入【'+condition_list.get(term)+'】：').strip()
+        condition_value = input('请输入【' + condition_list.get(term) +
+                                '】：').strip()
         # 第一个不能选择条件类型，所以没有这个字段
-        if index!=0:
+        if index != 0:
             condition_type_value = input('请输入【' + condition_list.get(term) +
                                          '】条件类型:（ａ）并且　（ｂ）或者　（ｃ）不含 ').strip()
             condition_field_list['txt_' + str(index + 1) +
@@ -70,7 +82,9 @@ def search_condition():
                                      condition_type_value)
         condition_field_list['txt_' + str(index + 1) +
                              '_sel'] = condition_value_list.get(term)
-        condition_field_list['txt_' + str(index + 1) + '_value1']=condition_value
-        condition_field_list['txt_'+str(index + 1)+'_relation'] = '#CNKI_AND'
-        condition_field_list['txt_' + str(index + 1) + '_special1']='='
+        condition_field_list['txt_' + str(index + 1) +
+                             '_value1'] = condition_value
+        condition_field_list['txt_' + str(index + 1) +
+                             '_relation'] = '#CNKI_AND'
+        condition_field_list['txt_' + str(index + 1) + '_special1'] = '='
     return condition_field_list

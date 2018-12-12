@@ -1,3 +1,16 @@
+"""
+-------------------------------------------------
+   File Name：     GetConfig.py
+   Description :   获取配置信息
+   Author :        Cyrus_Ren
+   date：          2018/12/10
+-------------------------------------------------
+   Change Activity:
+                   
+-------------------------------------------------
+"""
+__author__ = 'Cyrus_Ren'
+
 import os
 import configparser
 
@@ -34,6 +47,24 @@ class GetConfig(object):
     @LazyProperty
     def crawl_iscrackcode(self):
         return self.conf.get('crawl', 'isCrackCode')
+
+    @LazyProperty
+    def crawl_headers(self):
+        headers = {
+            'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36',
+            'Host':
+            'kns.cnki.net',
+            'Connection':
+            'keep-alive',
+            'Cache-Control':
+            'max-age=0',
+        }
+        return headers
+
+    @LazyProperty
+    def crawl_isdetail(self):
+        return self.conf.get('crawl', 'isDetailPage')
 
 
 config=GetConfig()

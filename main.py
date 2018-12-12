@@ -1,20 +1,29 @@
+"""
+-------------------------------------------------
+   File Name：     main.py
+   Description :   爬虫主程序
+   Author :        Cyrus_Ren
+   date：          2018/12/8
+-------------------------------------------------
+   Change Activity:
+                   
+-------------------------------------------------
+"""
+__author__ = 'Cyrus_Ren'
+
 import requests
 import re
-import time, os, shutil,logging
+import time, os, shutil, logging
 from UserInput import get_uesr_inpt
 from GetConfig import config
 from CrackVerifyCode import crack
+from GetPageDetail import page_detail
 # 引入字节编码
 from urllib.parse import quote
 # 引入beautifulsoup
 from bs4 import BeautifulSoup
 
-HEADER = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36',
-    'Host': 'kns.cnki.net',
-    'Connection': 'keep-alive',
-    'Cache-Control': 'max-age=0',
-}
+HEADER = config.crawl_headers
 # 获取cookie
 BASIC_URL = 'http://kns.cnki.net/kns/brief/result.aspx'
 # 利用post请求先行注册一次
@@ -69,9 +78,9 @@ class SearchTools(object):
             SEARCH_HANDLE_URL, data=post_data, headers=HEADER)
         # get请求中需要传入第一个检索条件的值
         key_value = quote(ueser_input.get('txt_1_value1'))
-        second_get_url = GET_PAGE_URL + first_post_res.text + '&t=1544249384932&keyValue=' + key_value + '&S=1&sorttype='
+        self.get_result_url = GET_PAGE_URL + first_post_res.text + '&t=1544249384932&keyValue=' + key_value + '&S=1&sorttype='
         # 检索结果的第一个页面
-        second_get_res = self.session.get(second_get_url, headers=HEADER)
+        second_get_res = self.session.get(self.get_result_url, headers=HEADER)
         change_page_pattern_compile = re.compile(
             r'.*?pagerTitleCell.*?<a href="(.*?)".*')
         self.change_page_url = re.search(change_page_pattern_compile,
@@ -108,6 +117,8 @@ class SearchTools(object):
                     print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
                     if i != 0:
                         page += 1
+                    else:
+                        page=1
                     return page
 
     def parse_page(self, download_page_left, page_source):
@@ -124,28 +135,40 @@ class SearchTools(object):
             tr_table.tr.extract()
         except Exception as e:
             logging.error('出现验证码')
-            return self.parse_page(download_page_left,
-                crack.get_image(self.next_page_url, self.session, page_source,
-                                HEADER))
+            return self.parse_page(
+                download_page_left,
+                crack.get_image(self.get_result_url, self.session,
+                                page_source))
         # 遍历每一行
         for index, tr_info in enumerate(tr_table.find_all(name='tr')):
-            # 遍历每一列
             tr_text = ''
             download_url = ''
+            detail_url = ''
+            # 遍历每一列
             for index, td_info in enumerate(tr_info.find_all(name='td')):
                 # 因为一列中的信息非常杂乱，此处进行二次拼接
                 td_text = ''
                 for string in td_info.stripped_strings:
                     td_text += string
                 tr_text += td_text + ' '
-                with open('data/ReferenceList.txt', 'a', encoding='utf-8') as file:
+                with open(
+                        'data/ReferenceList.txt', 'a',
+                        encoding='utf-8') as file:
                     file.write(td_text + ' ')
                 # 寻找下载链接
-                url = td_info.find('a', attrs={'class': 'briefDl_D'})
-                if url:
-                    download_url = url.attrs['href']
+                dl_url = td_info.find('a', attrs={'class': 'briefDl_D'})
+                # 寻找详情链接
+                dt_url = td_info.find('a', attrs={'class': 'fz14'})
+                # 排除不是所需要的列
+                if dt_url:
+                    detail_url = dt_url.attrs['href']
+                if dl_url:
+                    download_url = dl_url.attrs['href']
             # 将每一篇文献的信息分组
             single_refence_list = tr_text.split(' ')
+            if config.crawl_isdetail == '1':
+                page_detail.get_detail_page(self.session, self.get_result_url,
+                                            detail_url, single_refence_list)
             download_refence(download_url, single_refence_list)
             # 在每一行结束后输入一个空行
             with open('data/ReferenceList.txt', 'a', encoding='utf-8') as file:
@@ -160,12 +183,12 @@ class SearchTools(object):
         请求其他页面和请求第一个页面形式不同
         重新构造请求
         '''
-        # time.sleep(5)
+        time.sleep(3)
         curpage_pattern_compile = re.compile(r'.*?curpage=(\d+).*?')
-        self.next_page_url = CHANGE_PAGE_URL + re.sub(
+        self.get_result_url = CHANGE_PAGE_URL + re.sub(
             curpage_pattern_compile, '?curpage=' + str(self.cur_page_num),
             self.change_page_url)
-        get_res = self.session.get(self.next_page_url, headers=HEADER)
+        get_res = self.session.get(self.get_result_url, headers=HEADER)
         download_page_left -= 1
         self.parse_page(download_page_left, get_res.text)
 
@@ -184,14 +207,15 @@ def download_refence(url, single_refence_list):
     download_url = DOWNLOAD_URL + re.sub(r'../', '', url)
     # 保存下载链接
     with open('data/Links.txt', 'a', encoding='utf-8') as file:
-        file.write(download_url+'\n')
+        file.write(download_url + '\n')
     # 检查是否开启下载模式
-    if config.crawl_isdownload==1:
+    if config.crawl_isdownload == '1':
         if not os.path.isdir('data/CAJs'):
             os.mkdir(r'data/CAJs')
-        refence_file=requests.get(download_url,headers=HEADER)
-        with open('CAJs\\' + name + '.caj', 'wb') as file:
+        refence_file = requests.get(download_url, headers=HEADER)
+        with open('data/CAJs\\' + name + '.caj', 'wb') as file:
             file.write(refence_file.content)
+        # 缩小时间可能会导致IP被封
         time.sleep(5)
 
 
