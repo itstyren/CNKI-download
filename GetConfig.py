@@ -66,5 +66,9 @@ class GetConfig(object):
     def crawl_isdetail(self):
         return self.conf.get('crawl', 'isDetailPage')
 
+    @LazyProperty
+    def crawl_stepWaitTime(self):
+        return int(self.conf.get('crawl', 'stepWaitTime'))
+
 
 config=GetConfig()

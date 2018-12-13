@@ -40,9 +40,11 @@ def get_uesr_inpt():
     处理用户所需搜索的全部条件
     '''
     condition_fields = search_condition()
+    source_fields = search_source()
+    fields={**condition_fields,**source_fields}
     print('正在检索中.....')
     print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
-    return condition_fields
+    return fields
 
 
 def search_condition():
@@ -88,3 +90,15 @@ def search_condition():
                              '_relation'] = '#CNKI_AND'
         condition_field_list['txt_' + str(index + 1) + '_special1'] = '='
     return condition_field_list
+
+def search_source():
+    '''
+    搜索期刊来源
+    '''
+    print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
+    is_search_source = input('是否需要规定文献来源（y/n）？')
+    if is_search_source=='n':
+        return {}
+    else:
+        source=input('输入文献来源期刊名称：')
+        return {'magazine_value1': source, 'magazine_special1': '%'}

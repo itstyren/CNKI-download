@@ -16,6 +16,7 @@ from bs4 import BeautifulSoup
 from GetConfig import config
 import re
 import math,random
+from GetConfig import config
 
 HEADER = config.crawl_headers
 
@@ -35,12 +36,16 @@ class PageDetail(object):
         self.sheet.write(0, 6, '来源',self.basic_style)
         self.sheet.write(0, 7, '发表时间',self.basic_style)
         self.sheet.write(0, 8, '数据库',self.basic_style)
+        if config.crawl_isdownload!='1':
+            self.sheet.write(0, 9, '下载地址',self.basic_style)
+
 
         # 生成userKey,服务器不做验证
         self.cnkiUserKey=self.set_new_guid()
 
 
-    def get_detail_page(self, session,result_url, page_url, single_refence_list):
+    def get_detail_page(self, session, result_url, page_url,
+                        single_refence_list, download_url):
         '''
         发送三次请求
         前两次服务器注册 最后一次正式跳转
@@ -50,6 +55,7 @@ class PageDetail(object):
         self.single_refence_list=single_refence_list
         self.session = session
         self.session.cookies.set('cnkiUserKey', self.cnkiUserKey)
+        self.download_url=download_url
         cur_url_pattern_compile = re.compile(
             r'.*?FileName=(.*?)&.*?DbCode=(.*?)&')
         cur_url_set=re.search(cur_url_pattern_compile,page_url)
@@ -121,25 +127,33 @@ class PageDetail(object):
         self.reference_list.append(self.abstract)
         for i in range(3,6):
             self.reference_list.append(self.single_refence_list[i])
+        if config.crawl_isdownload!='1':
+            self.reference_list.append(self.download_url)
 
     def wtire_excel(self):
         '''
         将获得的数据写入到excel
         '''
         self.create_list()
-        for i in range(0,9):
-            self.sheet.write(int(self.reference_list[0]),i,self.reference_list[i],self.basic_style)
+        if config.crawl_isdownload!='1':
+            for i in range(0,10):
+                self.sheet.write(int(self.reference_list[0]),i,self.reference_list[i],self.basic_style)
+        else:
+            for i in range(0,9):
+                self.sheet.write(int(self.reference_list[0]),i,self.reference_list[i],self.basic_style)
+
 
     def set_style(self):
         '''
         设置excel样式
         '''
-        self.sheet.col(1).width = 256 * 40
+        self.sheet.col(1).width = 256 * 30
         self.sheet.col(2).width = 256 * 15
         self.sheet.col(3).width = 256 * 20
         self.sheet.col(4).width = 256 * 20
         self.sheet.col(5).width=256*60
         self.sheet.col(6).width = 256 * 15
+        self.sheet.col(9).width = 256 * 15
         self.sheet.row(0).height_mismatch=True
         self.sheet.row(0).height = 20*20
         self.basic_style=xlwt.XFStyle()

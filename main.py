@@ -165,10 +165,13 @@ class SearchTools(object):
                     download_url = dl_url.attrs['href']
             # 将每一篇文献的信息分组
             single_refence_list = tr_text.split(' ')
+            self.download_refence(download_url, single_refence_list)
+            # 是否开启详情页数据抓取
             if config.crawl_isdetail == '1':
+                time.sleep(config.crawl_stepWaitTime)
                 page_detail.get_detail_page(self.session, self.get_result_url,
-                                            detail_url, single_refence_list)
-            download_refence(download_url, single_refence_list)
+                                            detail_url, single_refence_list,
+                                            self.download_url)
             # 在每一行结束后输入一个空行
             with open('data/ReferenceList.txt', 'a', encoding='utf-8') as file:
                 file.write('\n')
@@ -182,7 +185,7 @@ class SearchTools(object):
         请求其他页面和请求第一个页面形式不同
         重新构造请求
         '''
-        time.sleep(3)
+        time.sleep(config.crawl_stepWaitTime)
         curpage_pattern_compile = re.compile(r'.*?curpage=(\d+).*?')
         self.get_result_url = CHANGE_PAGE_URL + re.sub(
             curpage_pattern_compile, '?curpage=' + str(self.cur_page_num),
@@ -192,30 +195,29 @@ class SearchTools(object):
         self.parse_page(download_page_left, get_res.text)
 
 
-def download_refence(url, single_refence_list):
-    '''
-    拼接下载地址
-    进行文献下载
-    '''
-    print('正在下载: ' + single_refence_list[1] + '.caj')
-    name = single_refence_list[1] + '_' + single_refence_list[2]
-    # 检查文件命名，防止网站资源有特殊字符本地无法保存
-    file_pattern_compile = re.compile(r'[\\/:\*\?"<>\|]')
-    name = re.sub(file_pattern_compile, '', name)
-    # 拼接下载地址
-    download_url = DOWNLOAD_URL + re.sub(r'../', '', url)
-    # 保存下载链接
-    with open('data/Links.txt', 'a', encoding='utf-8') as file:
-        file.write(download_url + '\n')
-    # 检查是否开启下载模式
-    if config.crawl_isdownload == '1':
-        if not os.path.isdir('data/CAJs'):
-            os.mkdir(r'data/CAJs')
-        refence_file = requests.get(download_url, headers=HEADER)
-        with open('data/CAJs\\' + name + '.caj', 'wb') as file:
-            file.write(refence_file.content)
-        # 缩小时间可能会导致IP被封
-        time.sleep(5)
+    def download_refence(self,url, single_refence_list):
+        '''
+        拼接下载地址
+        进行文献下载
+        '''
+        print('正在下载: ' + single_refence_list[1] + '.caj')
+        name = single_refence_list[1] + '_' + single_refence_list[2]
+        # 检查文件命名，防止网站资源有特殊字符本地无法保存
+        file_pattern_compile = re.compile(r'[\\/:\*\?"<>\|]')
+        name = re.sub(file_pattern_compile, '', name)
+        # 拼接下载地址
+        self.download_url = DOWNLOAD_URL + re.sub(r'../', '', url)
+        # 保存下载链接
+        with open('data/Links.txt', 'a', encoding='utf-8') as file:
+            file.write(self.download_url + '\n')
+        # 检查是否开启下载模式
+        if config.crawl_isdownload == '1':
+            if not os.path.isdir('data/CAJs'):
+                os.mkdir(r'data/CAJs')
+            refence_file = requests.get(self.download_url, headers=HEADER)
+            with open('data/CAJs\\' + name + '.caj', 'wb') as file:
+                file.write(refence_file.content)
+            time.sleep(config.crawl_stepWaitTime)
 
 
 def s2h(seconds):
@@ -228,6 +230,7 @@ def s2h(seconds):
 
 
 def main():
+    time.perf_counter()
     if os.path.isdir('data'):
         # 递归删除文件
         shutil.rmtree('data')
@@ -235,6 +238,8 @@ def main():
     os.mkdir('data')
     search = SearchTools()
     search.search_reference(get_uesr_inpt())
+    print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
+    print('爬取完毕，共运行：'+s2h(time.perf_counter()))
 
 
 if __name__ == '__main__':
