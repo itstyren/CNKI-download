@@ -70,5 +70,9 @@ class GetConfig(object):
     def crawl_stepWaitTime(self):
         return int(self.conf.get('crawl', 'stepWaitTime'))
 
+    @LazyProperty
+    def crawl_isDownLoadLink(self):
+        return int(self.conf.get('crawl', 'isDownLoadLink'))
+
 
 config=GetConfig()

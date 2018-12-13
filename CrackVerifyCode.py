@@ -12,7 +12,7 @@
 __author__ = 'Cyrus_Ren'
 
 from PIL import Image
-import tesserocr
+# import tesserocr
 import re
 from GetConfig import config
 from urllib.parse import quote_plus, urlencode
@@ -60,8 +60,8 @@ class CrackCode(object):
             else:
                 table.append(1)
         iamge = image.point(table, '1')
-        result = tesserocr.image_to_text(image)
-        print(result)
+        # result = tesserocr.image_to_text(image)
+        # print(result)
 
     def handle_code(self):
         '''
