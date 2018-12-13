@@ -113,12 +113,11 @@ class SearchTools(object):
                     select_download_num = int(input('请输入需要下载的数量（不满一页将下载整页）：'))
                 else:
                     page, i = divmod(select_download_num, 20)
-                    print("开始下载前%d页所有文件，预计用时%s" % (page, s2h(page * 20 * 5)))
-                    print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
+                    # 不满一页的下载一整页
                     if i != 0:
                         page += 1
-                    else:
-                        page=1
+                    print("开始下载前%d页所有文件，预计用时%s" % (page, s2h(page * 20 * 5)))
+                    print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
                     return page
 
     def parse_page(self, download_page_left, page_source):
