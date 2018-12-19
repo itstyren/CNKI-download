@@ -1,6 +1,8 @@
 # CNKI_download  中国知网爬虫
 项目是基于Python3 实现的爬取知网数据的爬虫，可根据知网高级检索进行搜索，提供文献基本信息、文献下载、文献摘要等详细信息爬取功能。
 
+实现过程可以查看[我的博客](https://cyrusrenty.github.io//2018/12/19/cnkispider-1/)
+
 程序运行如下：
 
 ![](https://i.imgur.com/0P9erW1.jpg)
