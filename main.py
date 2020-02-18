@@ -9,19 +9,23 @@
                    
 -------------------------------------------------
 """
-__author__ = 'Cyrus_Ren'
 
-import requests
+import logging
+import os
 import re
-import time, os, shutil, logging
-from UserInput import get_uesr_inpt
-from GetConfig import config
-from CrackVerifyCode import crack
-from GetPageDetail import page_detail
+import shutil
+import time
 # 引入字节编码
 from urllib.parse import quote
+
+import requests
 # 引入beautifulsoup
 from bs4 import BeautifulSoup
+
+from CrackVerifyCode import crack
+from GetConfig import config
+from GetPageDetail import page_detail
+from userinput import get_uesr_inpt
 
 HEADER = config.crawl_headers
 # 获取cookie
@@ -83,15 +87,21 @@ class SearchTools(object):
         second_get_res = self.session.get(self.get_result_url, headers=HEADER)
         change_page_pattern_compile = re.compile(
             r'.*?pagerTitleCell.*?<a href="(.*?)".*')
-        self.change_page_url = re.search(change_page_pattern_compile,
+
+        try:
+            self.change_page_url = re.search(change_page_pattern_compile,
                                          second_get_res.text).group(1)
+        except:
+            pass
+
+
         self.parse_page(
             self.pre_parse_page(second_get_res.text), second_get_res.text)
 
     def pre_parse_page(self, page_source):
-        '''
+        """
         用户选择需要检索的页数
-        '''
+        """
         reference_num_pattern_compile = re.compile(r'.*?找到&nbsp;(.*?)&nbsp;')
         reference_num = re.search(reference_num_pattern_compile,
                                   page_source).group(1)
@@ -144,10 +154,13 @@ class SearchTools(object):
             download_url = ''
             detail_url = ''
             # 遍历每一列
-            for index, td_info in enumerate(tr_info.find_all(name='td')):
+            for idx, td_info in enumerate(tr_info.find_all(name='td')):
                 # 因为一列中的信息非常杂乱，此处进行二次拼接
                 td_text = ''
                 for string in td_info.stripped_strings:
+                    if ' ' in string:
+                        string = string.split(' ')[0]
+                    # print(string)
                     td_text += string
                 tr_text += td_text + ' '
                 with open(
@@ -165,6 +178,7 @@ class SearchTools(object):
                     download_url = dl_url.attrs['href']
             # 将每一篇文献的信息分组
             single_refence_list = tr_text.split(' ')
+            # print(single_refence_list)
             self.download_refence(download_url, single_refence_list)
             # 是否开启详情页数据抓取
             if config.crawl_isdetail == '1':
@@ -194,12 +208,11 @@ class SearchTools(object):
         download_page_left -= 1
         self.parse_page(download_page_left, get_res.text)
 
-
-    def download_refence(self,url, single_refence_list):
-        '''
+    def download_refence(self, url, single_refence_list):
+        """
         拼接下载地址
         进行文献下载
-        '''
+        """
         print('正在下载: ' + single_refence_list[1] + '.caj')
         name = single_refence_list[1] + '_' + single_refence_list[2]
         # 检查文件命名，防止网站资源有特殊字符本地无法保存
@@ -239,7 +252,7 @@ def main():
     search = SearchTools()
     search.search_reference(get_uesr_inpt())
     print('－－－－－－－－－－－－－－－－－－－－－－－－－－')
-    print('爬取完毕，共运行：'+s2h(time.perf_counter()))
+    print('爬取完毕，共运行：' + s2h(time.perf_counter()))
 
 
 if __name__ == '__main__':
