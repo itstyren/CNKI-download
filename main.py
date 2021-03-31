@@ -6,10 +6,12 @@
    date：          2018/12/8
 -------------------------------------------------
    Change Activity:
-                   
+   1.支持CAJ下载
+   Description：     利用ip登录，获取cookie，实现CAJ文件下载
+   date：            2021/03/30
 -------------------------------------------------
 """
-
+import datetime
 import logging
 import os
 import re
@@ -29,15 +31,17 @@ from userinput import get_uesr_inpt
 
 HEADER = config.crawl_headers
 # 获取cookie
-BASIC_URL = 'http://kns.cnki.net/kns/brief/result.aspx'
+BASIC_URL = 'https://kns.cnki.net/kns/brief/result.aspx'
 # 利用post请求先行注册一次
-SEARCH_HANDLE_URL = 'http://kns.cnki.net/kns/request/SearchHandler.ashx'
+SEARCH_HANDLE_URL = 'https://kns.cnki.net/kns/request/SearchHandler.ashx'
 # 发送get请求获得文献资源
-GET_PAGE_URL = 'http://kns.cnki.net/kns/brief/brief.aspx?pagename='
+GET_PAGE_URL = 'https://kns.cnki.net/kns/brief/brief.aspx?pagename='
 # 下载的基础链接
-DOWNLOAD_URL = 'http://kns.cnki.net/kns/'
+DOWNLOAD_URL = 'https://kns.cnki.net/kns/'
 # 切换页面基础链接
-CHANGE_PAGE_URL = 'http://kns.cnki.net/kns/brief/brief.aspx'
+CHANGE_PAGE_URL = 'https://kns.cnki.net/kns/brief/brief.aspx'
+# ip 登录
+IP_LOGINURL = 'https://login.cnki.net/TopLogin/api/loginapi/IpLogin?callback=jQuery111305919436467939507_1617072512959&isAutoLogin=false&checkCode=&isForceLogin=true&p=0&_=1617072512962'
 
 
 class SearchTools(object):
@@ -51,6 +55,7 @@ class SearchTools(object):
         self.cur_page_num = 1
         # 保持会话
         self.session.get(BASIC_URL, headers=HEADER)
+        self.session.get(IP_LOGINURL, headers=HEADER)
 
     def search_reference(self, ueser_input):
         '''
@@ -63,11 +68,12 @@ class SearchTools(object):
             'NaviCode': '*',
             'ua': '1.21',
             'isinEn': '1',
-            'PageName': 'ASP.brief_default_result_aspx',
+            'PageName': 'ASP.brief_result_aspx',
             'DbPrefix': 'SCDB',
             'DbCatalog': '中国学术期刊网络出版总库',
-            'ConfigFile': 'CJFQ.xml',
+            'ConfigFile': 'SCDB.xml',
             'db_opt': 'CJFQ,CDFD,CMFD,CPFD,IPFD,CCND,CCJD',  # 搜索类别（CNKI右侧的）
+            'CKB_extension': 'ZYW',
             'db_value': '中国学术期刊网络出版总库',
             'year_type': 'echar',
             'his': '0',
@@ -77,34 +83,32 @@ class SearchTools(object):
         }
         # 将固定字段与自定义字段组合
         post_data = {**static_post_data, **ueser_input}
-        # 必须有第一次请求，否则会提示服务器没有用户
+        # 第一次post请求
         first_post_res = self.session.post(
             SEARCH_HANDLE_URL, data=post_data, headers=HEADER)
         # get请求中需要传入第一个检索条件的值
         key_value = quote(ueser_input.get('txt_1_value1'))
         self.get_result_url = GET_PAGE_URL + first_post_res.text + '&t=1544249384932&keyValue=' + key_value + '&S=1&sorttype='
-        # 检索结果的第一个页面
+        # 第二次get请求，得到检索结果的第一个页面
         second_get_res = self.session.get(self.get_result_url, headers=HEADER)
         change_page_pattern_compile = re.compile(
             r'.*?pagerTitleCell.*?<a href="(.*?)".*')
 
         try:
             self.change_page_url = re.search(change_page_pattern_compile,
-                                         second_get_res.text).group(1)
+                                             second_get_res.text).group(1)
+
         except:
             pass
 
-
-        self.parse_page(
-            self.pre_parse_page(second_get_res.text), second_get_res.text)
+        self.parse_page(self.pre_parse_page(second_get_res.text), second_get_res.text)
 
     def pre_parse_page(self, page_source):
         """
         用户选择需要检索的页数
         """
         reference_num_pattern_compile = re.compile(r'.*?找到&nbsp;(.*?)&nbsp;')
-        reference_num = re.search(reference_num_pattern_compile,
-                                  page_source).group(1)
+        reference_num = re.search(reference_num_pattern_compile, page_source).group(1)
         reference_num_int = int(reference_num.replace(',', ''))
         print('检索到' + reference_num + '条结果，全部下载大约需要' +
               s2h(reference_num_int * 5) + '。')
@@ -227,16 +231,29 @@ class SearchTools(object):
         if config.crawl_isdownload == '1':
             if not os.path.isdir('data/CAJs'):
                 os.mkdir(r'data/CAJs')
-            refence_file = requests.get(self.download_url, headers=HEADER)
-            with open('data/CAJs\\' + name + '.caj', 'wb') as file:
-                file.write(refence_file.content)
+            print(self.download_url)
+            self.download(name, self.download_url)
             time.sleep(config.crawl_stepWaitTime)
+            # refence_file = requests.get(self.download_url, headers=HEADER, allow_redirects=False)
+            a = input('....pause')
+
+    def download(self, name, down_url):
+        """
+        文献下载
+        """
+        d = self.session.get(down_url, allow_redirects=False, headers=HEADER)
+        h = {}
+        s = 'c_m_LinID=' + re.findall(r'.*?c_m_LinID=(.*?);', str(d.request.headers.get('Cookie')))[0] + ';'
+        h.setdefault('Cookie', s)
+        e = self.session.get(d.headers['Location'], headers=h)
+        with open('data/CAJs\\' + name + '.caj', 'wb') as file:
+            file.write(e.content)
 
 
 def s2h(seconds):
-    '''
+    """
     将秒数转为小时数
-    '''
+    """
     m, s = divmod(seconds, 60)
     h, m = divmod(m, 60)
     return ("%02d小时%02d分钟%02d秒" % (h, m, s))
