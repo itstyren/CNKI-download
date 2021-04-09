@@ -231,11 +231,9 @@ class SearchTools(object):
         if config.crawl_isdownload == '1':
             if not os.path.isdir('data/CAJs'):
                 os.mkdir(r'data/CAJs')
-            print(self.download_url)
             self.download(name, self.download_url)
             time.sleep(config.crawl_stepWaitTime)
             # refence_file = requests.get(self.download_url, headers=HEADER, allow_redirects=False)
-            a = input('....pause')
 
     def download(self, name, down_url):
         """
@@ -248,6 +246,7 @@ class SearchTools(object):
         e = self.session.get(d.headers['Location'], headers=h)
         with open('data/CAJs\\' + name + '.caj', 'wb') as file:
             file.write(e.content)
+        print("下载成功！")
 
 
 def s2h(seconds):
