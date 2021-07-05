@@ -14,6 +14,7 @@ __author__ = 'Cyrus_Ren'
 import os
 import configparser
 
+
 class LazyProperty(object):
     """
     LazyProperty
@@ -36,13 +37,14 @@ class GetConfig(object):
     """
     to get config from config.ini
     """
+
     def __init__(self):
-        self.conf=configparser.ConfigParser()
+        self.conf = configparser.ConfigParser()
         self.conf.read('./Config.ini', encoding='UTF-8')
 
     @LazyProperty
     def crawl_isdownload(self):
-        return self.conf.get('crawl','isDownloadFile')
+        return self.conf.get('crawl', 'isDownloadFile')
 
     @LazyProperty
     def crawl_iscrackcode(self):
@@ -52,13 +54,14 @@ class GetConfig(object):
     def crawl_headers(self):
         headers = {
             'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36',
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36',
             'Host':
-            'kns.cnki.net',
+                'kns.cnki.net',
             'Connection':
-            'keep-alive',
+                'keep-alive',
             'Cache-Control':
-            'max-age=0',
+                'max-age=0',
+            'Referer': 'https://kns.cnki.net/kns/brief/result.aspx?dbprefix=scdb'
         }
         return headers
 
@@ -75,4 +78,4 @@ class GetConfig(object):
         return int(self.conf.get('crawl', 'isDownLoadLink'))
 
 
-config=GetConfig()
+config = GetConfig()

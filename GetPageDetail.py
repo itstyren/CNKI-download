@@ -13,7 +13,7 @@ __author__ = 'Cyrus_Ren'
 
 import xlwt
 from bs4 import BeautifulSoup
-from GetConfig import config
+# from GetConfig import config
 import re
 import math, random
 from GetConfig import config
@@ -85,45 +85,87 @@ class PageDetail(object):
         解析页面信息
         '''
         soup = BeautifulSoup(detail_page, 'lxml')
+        # print(soup)
+
         # 获取作者单位信息
-        orgn_list = soup.find(name='div', class_='orgn').find_all('a')
         self.orgn = ''
-        if len(orgn_list) == 0:
-            self.orgn = '无单位来源'
-        else:
+        # orgn_list = soup.find(name='div', class_='orgn').find_all('a')
+        if soup.find(name='a', class_='author'):
+            orgn_list = soup.find(name='a', class_='author').strings
+        # print("====作者单位====")
+        # print(orgn_list[1].string)
+
+        # self.orgn = ''
             for o in orgn_list:
-                self.orgn += o.string
-        # 获取来源信息
-        
-        srcinfo_list = soup.find(name='div', class_='sourinfo').find_all('p')
-        self.srcinfo = ''
-        if len(srcinfo_list) == 0:
-            self.srcinfo = '无来源信息'
+                    self.orgn += o
         else:
-            for o in srcinfo_list:
-                if o.string is not None:
-                    self.srcinfo += o.string.strip() + '\n'
-        
+            self.orgn = '无单位来源'
+
+
+        # 获取来源信息
+
+        self.srcinfo = ''
+        # srcinfo_list = soup.find(name='div', class_='sourinfo').find_all('p')
+        if soup.find(name='div', class_='top-tip'):
+            srcinfo_list = soup.find(name='div', class_='top-tip').find_all('a')
+
+        # print("======来源信息=====")
+        # print(srcinfo_list)
+
+            if len(srcinfo_list) == 0:
+                self.srcinf = '无来源信息'
+            else:
+                for s in srcinfo_list:
+                    if s.string is not None:
+                        self.srcinfo += s.string.strip() + '\n'
+        else:
+            self.srcinfo = '无来源信息'
+
+
+
         # 获取摘要
 
+        self.abstract = ''
         if soup.find(name='span', id='ChDivSummary'):
             abstract_list = soup.find(name='span', id='ChDivSummary').strings
+            for a in abstract_list:
+                self.abstract += a
         else:
-            abstract_list = '无摘要'
-        self.abstract = ''
-        for a in abstract_list:
-            self.abstract += a
-        # 获取关键词
-        self.keywords = ''
-        try:
-            keywords_list = soup.find(name='label', id='catalog_KEYWORD').next_siblings
-            for k_l in keywords_list:
-                # 去除关键词中的空格，换行
-                for k in k_l.stripped_strings:
-                    self.keywords += k
+            self.abstract = '无摘要'
 
-        except Exception:
+        # print("======摘要=====")
+        # print(self.abstract)
+
+        # else:
+        #     abstract_list = '无摘要'
+        # for a in abstract_list:
+        #     self.abstract += a
+
+
+        # 获取关键词
+
+        self.keywords = ''
+        # keywords_list = soup.find(name='label', id='catalog_KEYWORD').next_siblings
+        if soup.find(name='p', class_='keywords'):
+            keywords_list = soup.find(name='p', class_='keywords').find_all('a')
+            if len(keywords_list) == 0:
+                self.keywords = '无关键词'
+            else:
+                for k_l in keywords_list:
+                    for k in k_l.stripped_strings:
+                        self.keywords += k
+        else:
             self.keywords = '无关键词'
+
+        # print("======关键词=====")
+        # print(keywords_list)
+
+        # for k_l in keywords_list:
+        #     # 去除关键词中的空格，换行
+        #     for k in k_l.stripped_strings:
+        #         self.keywords += k
+
+
         self.wtire_excel()
 
     def create_list(self):
