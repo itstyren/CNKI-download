@@ -1,3 +1,10 @@
+**English:**  
+> ⚠️ This repository is no longer maintained. However, it remains available for **educational and learning purposes**. Feel free to explore the code and adapt it to your needs.
+
+**Chinese (中文):**  
+> ⚠️ 此仓库已停止维护，但仍可用于**学习目的**。欢迎查阅代码并根据需要进行修改和使用。
+
+
 # CNKI_download  中国知网爬虫
 项目是基于Python3 实现的爬取知网数据的爬虫，可根据知网高级检索进行搜索，提供文献基本信息、文献下载、文献摘要等详细信息爬取功能。
 
